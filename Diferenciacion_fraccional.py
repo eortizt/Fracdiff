@@ -92,6 +92,36 @@ def MemoryVsCorr(series, dRange, step, threshold):
     return result
 
 
+def least_diff(series, dRange: tuple, step, threshold, confidence: str):
+    '''Function to fractionally differentiate a series using the minimum degree
+    possible to make the series stationary.
+    Stationarity is determined using ADF test
+    Returns result as a DataFrame with the order of differentiation, the ADF test
+    and the threshold value for the confidence interval used
+    It also returns the differentiated series as a DataFrame
+    '''
+    interval=np.arange(dRange[0], dRange[1]+step,step)
+    result=pd.DataFrame(columns = ['order','adf', confidence])
+    deg = interval[0]
+    seq_traf=fracdiff_threshold(series,deg,threshold)
+    res=adfuller(seq_traf, maxlag=1, regression='c') #autolag='AIC'
+    while res[0]>res[4][confidence]:
+      deg += step
+      res=adfuller(fracdiff_threshold(series,deg,threshold), maxlag=1, regression='c')
+    interval=np.arange(deg-step, deg, step/10)
+    deg = interval[0]
+    seq_traf=fracdiff_threshold(series,deg,threshold)
+    res=adfuller(seq_traf, maxlag=1, regression='c') #autolag='AIC'
+    while res[0]>res[4][confidence]:
+      deg += step/10
+      seq_traf=fracdiff_threshold(series,deg,threshold)
+      res=adfuller(seq_traf, maxlag=1, regression='c')
+    result['order']=[deg]
+    result['adf']=[res[0]]
+    result[confidence]=[res[4][confidence]]
+      
+    return result,seq_traf
+
 #%% Borrar seccion
 # No dejar
 def MemoryVsCorr(series, dRange, numberPlots, lag_cutoff, seriesName):
