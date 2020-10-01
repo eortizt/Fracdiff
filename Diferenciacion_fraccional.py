@@ -16,7 +16,6 @@ hist = msft.history(period='10y')
 close = pd.DataFrame(np.log(hist.Close))
 
 
-# Si dejar
 def findWeights_FFD(d, length, threshold):
     #set first weight to be a 1 and k to be 1
     w, k = [1.], 1
@@ -38,12 +37,12 @@ def findWeights_FFD(d, length, threshold):
     
     return w
 
-#Si dejar
+
 def fracdiff_threshold(series, d, threshold):
     # return the time series resulting from (fractional) differencing
     length = len(series)
     weights=findWeights_FFD(d, length, threshold)
-    weights = weights[::-1] #Verificar qué pasa si no se deja esta linea
+    weights = weights[::-1]
     res=0
     for k in range(len(weights)):
         res += weights[k]*series.shift(k).fillna(0)
@@ -95,6 +94,7 @@ def MemoryVsCorr(series, dRange, step, threshold):
 def least_diff(series, dRange: tuple, step, threshold, confidence: str):
     '''Function to fractionally differentiate a series using the minimum degree
     possible to make the series stationary.
+    "series" is expected to be a DataFrame with the (log) close prices and with column name="Close"
     Stationarity is determined using ADF test
     Returns result as a DataFrame with the order of differentiation, the ADF test
     and the threshold value for the confidence interval used
@@ -121,44 +121,3 @@ def least_diff(series, dRange: tuple, step, threshold, confidence: str):
     result[confidence]=[res[4][confidence]]
       
     return result,seq_traf
-
-#%% Borrar seccion
-# No dejar
-def MemoryVsCorr(series, dRange, numberPlots, lag_cutoff, seriesName):
-    # return a data frame and plot comparing adf statistics and linear correlation
-    # for numberPlots orders of differencing in the interval dRange up to a lag_cutoff coefficients
-    
-    interval=np.linspace(dRange[0], dRange[1],numberPlots)
-    result=pd.DataFrame(np.zeros((len(interval),4)))
-    result.columns = ['order','adf','corr', '5%']
-    result['order']=interval
-    for counter,order in enumerate(interval):
-        seq_traf=fracdiff_threshold(close,order,1e-5)
-        res=adfuller(seq_traf, maxlag=1, regression='c') #autolag='AIC'
-        result.loc[counter,'adf']=res[0]
-        result.loc[counter,'5%']=res[4]['5%']
-        result.loc[counter,'corr']= np.corrcoef(series[lag_cutoff:].fillna(0),seq_traf)[0,1]
-    #plotMemoryVsCorr(result, seriesName)    
-    return result
-
-
-# No dejar
-def getWeights(d,lags):
-    # return the weights from the series expansion of the differencing operator
-    # for real orders d and up to lags coefficients
-    w=[1]
-    for k in range(1,lags):
-        w.append(-w[-1]*((d-k+1))/k)
-    w=np.array(w).reshape(-1,1) 
-    return w
-
-# No dejar
-def ts_differencing(series, order, lag_cutoff):
-    # return the time series resulting from (fractional) differencing
-    # for real orders order up to lag_cutoff coefficients
-    
-    weights=getWeights(order, lag_cutoff)
-    res=0
-    for k in range(lag_cutoff):
-        res += weights[k]*series.shift(k).fillna(0)
-    return res[lag_cutoff:]
